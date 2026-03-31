@@ -1,0 +1,504 @@
+ import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Menu, X, Facebook, MessageCircle, MapPin, 
+  ChefHat, Lock, Edit2, Plus, Trash2, Camera, Phone, ShoppingCart, Minus, Star, Check, Info, Sparkles
+} from 'lucide-react';
+
+// --- CONFIGURACIÓN DE CONDIMENTOS ---
+const CONDIMENTOS_CONFIG = [
+  { id: 'cebolla', nombre: 'Cebolla', precio: 0, tipo: 'basico' },
+  { id: 'chiles', nombre: 'Chiles', precio: 0, tipo: 'basico' },
+  { id: 'lechuga', nombre: 'Lechuga', precio: 0, tipo: 'basico' },
+  { id: 'rabanos', nombre: 'Rábanos', precio: 0, tipo: 'basico' },
+  { id: 'limones', nombre: 'Limones Extra', precio: 0, tipo: 'basico' },
+  { id: 'pollo', nombre: 'Pollo Extra', precio: 35, tipo: 'extra' },
+  { id: 'carne', nombre: 'Carne Extra', precio: 45, tipo: 'extra' },
+  { id: 'queso', nombre: 'Queso Extra', precio: 25, tipo: 'extra' },
+];
+
+const datosIniciales = [
+  { id: 1, nombre: "Enchiladas Suizas", descripcion: "Bañadas en salsa verde cremosa, gratinadas con queso.", precio: 135, esEspecialidad: true, imagen: "https://images.unsplash.com/photo-1534352956036-cd81e27dd615?auto=format&fit=crop&q=80&w=800" },
+  { id: 2, nombre: "Pozole Rojo", descripcion: "Pozole de cerdo tradicional, servido con tostadas y rábano.", precio: 155, esEspecialidad: true, imagen: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=800" },
+  { id: 3, nombre: "Tacos al Pastor", descripcion: "Orden de 5 tacos marinados con piña, cilantro y cebolla.", precio: 95, esEspecialidad: true, imagen: "https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?auto=format&fit=crop&q=80&w=800" },
+  { id: 4, nombre: "Mole Poblano", descripcion: "Pollo en mole artesanal poblano, servido con arroz rojo.", precio: 185, esEspecialidad: true, imagen: "https://images.unsplash.com/photo-1599974579688-8dbdd335c77f?auto=format&fit=crop&q=80&w=800" },
+  { id: 5, nombre: "Flautas de Pollo", descripcion: "4 flautas crujientes con lechuga, crema y queso fresco.", precio: 110, esEspecialidad: true, imagen: "https://images.unsplash.com/photo-1625938140722-23e528c61239?auto=format&fit=crop&q=80&w=800" },
+  { id: 6, nombre: "Chilaquiles Verdes", descripcion: "Totopos en salsa verde, crema, queso y cebolla morada.", precio: 120, esEspecialidad: true, imagen: "https://images.unsplash.com/photo-1533777324545-e0162727fcb7?auto=format&fit=crop&q=80&w=800" },
+  { id: 7, nombre: "Sopa Azteca", descripcion: "Sopa de tortilla con aguacate, panela y tiras de chile.", precio: 95, esEspecialidad: true, imagen: "https://images.unsplash.com/photo-1594759023562-309399b27d85?auto=format&fit=crop&q=80&w=800" },
+  { id: 8, nombre: "Chiles Rellenos", descripcion: "Poblano relleno de queso, capeado y en caldillo de tomate.", precio: 140, esEspecialidad: false, imagen: "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&q=80&w=800" },
+  { id: 9, nombre: "Cochinita Pibil", descripcion: "Cerdo marinado en achiote con cebolla morada y habanero.", precio: 160, esEspecialidad: false, imagen: "https://images.unsplash.com/photo-1593560733839-a93bb9f2824b?auto=format&fit=crop&q=80&w=800" },
+  { id: 10, nombre: "Tamales Oaxaqueños", descripcion: "Tamales en hoja de plátano rellenos de mole y pollo.", precio: 80, esEspecialidad: false, imagen: "https://images.unsplash.com/photo-1626078297492-974a7288860c?auto=format&fit=crop&q=80&w=800" },
+  { id: 11, nombre: "Carnitas", descripcion: "Carnitas preparadas en cazo de cobre, con nopales.", precio: 150, esEspecialidad: false, imagen: "https://images.unsplash.com/photo-1562607378-07bb7958e552?auto=format&fit=crop&q=80&w=800" },
+  { id: 12, nombre: "Tostadas de Tinga", descripcion: "3 tostadas de pollo al chipotle con frijoles y crema.", precio: 115, esEspecialidad: false, imagen: "https://images.unsplash.com/photo-1513456852971-30c0b8199d4d?auto=format&fit=crop&q=80&w=800" },
+  { id: 13, nombre: "Flan Napolitano", descripcion: "Postre casero horneado con queso crema y caramelo.", precio: 65, esEspecialidad: false, imagen: "https://images.unsplash.com/photo-1528975604071-b4dc52a2d18c?auto=format&fit=crop&q=80&w=800" },
+  { id: 14, nombre: "Arroz con Leche", descripcion: "Arroz cremoso con canela y leche condensada.", precio: 55, esEspecialidad: false, imagen: "https://images.unsplash.com/photo-1516734212186-a967f81ad0d7?auto=format&fit=crop&q=80&w=800" }
+];
+
+const WHATSAPP_NUMBER = "527715009052"; 
+
+// --- COMPONENTE 3D: PLATILLO GIRATORIO ---
+const RotatingDish3D = () => {
+  const mountRef = useRef(null);
+
+  useEffect(() => {
+    let renderer, scene, camera, plate, foodGroup;
+    let animationId;
+
+    const initScene = () => {
+      const THREE = window.THREE;
+      if (!mountRef.current || !THREE) return;
+
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+      camera.position.set(0, 2, 5);
+      camera.lookAt(0, 0, 0);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(400, 400);
+      mountRef.current.appendChild(renderer.domElement);
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+      scene.add(ambientLight);
+      const pointLight = new THREE.PointLight(0xffffff, 1);
+      pointLight.position.set(5, 5, 5);
+      scene.add(pointLight);
+
+      // Plato
+      const plateGeo = new THREE.CylinderGeometry(2, 1.8, 0.1, 32);
+      const plateMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+      plate = new THREE.Mesh(plateGeo, plateMat);
+      scene.add(plate);
+
+      foodGroup = new THREE.Group();
+      for (let i = 0; i < 3; i++) {
+        const itemGeo = new THREE.BoxGeometry(0.8, 0.3, 1.2);
+        const itemMat = new THREE.MeshStandardMaterial({ color: 0xe67e22 });
+        const item = new THREE.Mesh(itemGeo, itemMat);
+        item.position.x = (i - 1) * 0.6;
+        item.position.y = 0.2;
+        item.rotation.y = Math.random();
+        foodGroup.add(item);
+      }
+
+      const sauceGeo = new THREE.TorusGeometry(0.8, 0.2, 8, 32);
+      const sauceMat = new THREE.MeshStandardMaterial({ color: 0x27ae60 });
+      const sauce = new THREE.Mesh(sauceGeo, sauceMat);
+      sauce.rotation.x = Math.PI / 2;
+      sauce.position.y = 0.15;
+      foodGroup.add(sauce);
+      scene.add(foodGroup);
+
+      const animate = () => {
+        animationId = requestAnimationFrame(animate);
+        if (plate) plate.rotation.y += 0.01;
+        if (foodGroup) foodGroup.rotation.y += 0.01;
+        renderer.render(scene, camera);
+      };
+      animate();
+    };
+
+    if (typeof window.THREE === 'undefined') {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+      script.onload = initScene;
+      document.head.appendChild(script);
+    } else {
+      initScene();
+    }
+
+    return () => {
+      cancelAnimationFrame(animationId);
+      if (mountRef.current && renderer) {
+        mountRef.current.innerHTML = '';
+      }
+    };
+  }, []);
+
+  return <div ref={mountRef} className="w-[300px] h-[300px] md:w-[400px] md:h-[400px] flex items-center justify-center cursor-move" />;
+};
+
+export default function App() {
+  const [vistaActual, setVistaActual] = useState('inicio');
+  const [menuAbierto, setMenuAbierto] = useState(false);
+  const [platillos, setPlatillos] = useState(() => {
+    const guardados = localStorage.getItem('miLupita_menu');
+    return guardados ? JSON.parse(guardados) : datosIniciales;
+  });
+  
+  const [carrito, setCarrito] = useState([]);
+  const [mostrarCarrito, setMostrarCarrito] = useState(false);
+  const [mensajeNotificacion, setMensajeNotificacion] = useState('');
+  const [personalizando, setPersonalizando] = useState(null);
+  const [condimentosTemp, setCondimentosTemp] = useState({});
+
+  // Lógica de conteo de órdenes
+  const obtenerContadorOrden = () => {
+    const ahora = new Date();
+    const data = JSON.parse(localStorage.getItem('miLupita_orden_info') || '{"count": 0, "lastReset": 0}');
+    let inicioCiclo = new Date();
+    inicioCiclo.setHours(1, 0, 0, 0);
+    if (ahora < inicioCiclo) inicioCiclo.setDate(inicioCiclo.getDate() - 1);
+    if (data.lastReset < inicioCiclo.getTime()) return { count: 0, lastReset: ahora.getTime() };
+    return data;
+  };
+
+  useEffect(() => {
+    document.title = "Mi Lupita | El Sabor en 3D";
+    localStorage.setItem('miLupita_menu', JSON.stringify(platillos));
+  }, [platillos]);
+
+  const abrirPersonalizacion = (platillo) => {
+    setPersonalizando(platillo);
+    const inicial = {};
+    CONDIMENTOS_CONFIG.forEach(c => inicial[c.id] = (c.tipo === 'basico'));
+    setCondimentosTemp(inicial);
+  };
+
+  const confirmarPersonalizacion = () => {
+    const extras = CONDIMENTOS_CONFIG.filter(c => condimentosTemp[c.id]);
+    const sin = CONDIMENTOS_CONFIG.filter(c => c.tipo === 'basico' && !condimentosTemp[c.id]);
+    const costoExtra = extras.reduce((sum, c) => sum + c.precio, 0);
+    
+    const itemCarrito = {
+      ...personalizando,
+      idUnico: `${personalizando.id}-${Date.now()}`,
+      precioFinal: personalizando.precio + costoExtra,
+      extras: extras.map(e => e.nombre),
+      sin: sin.map(s => s.nombre),
+    };
+    setCarrito(prev => [...prev, { ...itemCarrito, cantidad: 1 }]);
+    setPersonalizando(null);
+    mostrarNotificacion(`¡${personalizando.nombre} agregado! ✨`);
+  };
+
+  const actualizarCantidad = (idUnico, delta) => {
+    setCarrito(prev => {
+      const nuevoCarrito = prev.map(item => {
+        if (item.idUnico === idUnico) {
+          return { ...item, cantidad: item.cantidad + delta };
+        }
+        return item;
+      });
+      return nuevoCarrito.filter(item => item.cantidad > 0);
+    });
+  };
+
+  const totalCarrito = carrito.reduce((sum, item) => sum + (item.precioFinal * item.cantidad), 0);
+  const cantidadTotal = carrito.reduce((sum, item) => sum + item.cantidad, 0);
+
+  const mostrarNotificacion = (msg) => {
+    setMensajeNotificacion(msg);
+    setTimeout(() => setMensajeNotificacion(''), 3000);
+  };
+
+  const irA = (vista) => {
+    setVistaActual(vista);
+    setMenuAbierto(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const pedirCarritoPorWhatsApp = () => {
+    if (carrito.length === 0) return;
+    const ordenInfo = obtenerContadorOrden();
+    const nuevaCuenta = ordenInfo.count + 1;
+    localStorage.setItem('miLupita_orden_info', JSON.stringify({ count: nuevaCuenta, lastReset: new Date().getTime() }));
+
+    let mensaje = `*🇲🇽 NUEVA ORDEN #${nuevaCuenta} - MI LUPITA* 🇲🇽\n\n`;
+    carrito.forEach(item => {
+      mensaje += `*${item.cantidad}x ${item.nombre}* ($${item.precioFinal} c/u)\n`;
+      if (item.extras.length > 0) mensaje += `   + Extras: ${item.extras.join(', ')}\n`;
+      if (item.sin.length > 0) mensaje += `   - Sin: ${item.sin.join(', ')}\n`;
+      mensaje += `\n`;
+    });
+    mensaje += `*TOTAL: $${totalCarrito} MXN*`;
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(mensaje)}`, '_blank');
+    setCarrito([]);
+    setMostrarCarrito(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-[#fffdfa] font-sans text-gray-800 selection:bg-orange-200 overflow-x-hidden">
+      <style>{`
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+        .animate-fade-up { animation: fadeInUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0; }
+        .stagger-1 { animation-delay: 0.1s; }
+        .stagger-2 { animation-delay: 0.2s; }
+        .stagger-3 { animation-delay: 0.3s; }
+        .bg-mesh { background: linear-gradient(-45deg, #fffdfa, #fff5e6, #fffdfa, #ffe8cc); background-size: 400% 400%; }
+        .card-hover { transition: all 0.4s ease; }
+        .card-hover:hover { transform: translateY(-10px); box-shadow: 0 25px 50px -12px rgba(251, 146, 60, 0.2); }
+      `}</style>
+
+      {/* NAVBAR */}
+      <nav className="bg-orange-600 text-white shadow-xl sticky top-0 z-40 h-20 flex items-center px-6">
+        <div className="max-w-7xl mx-auto w-full flex justify-between items-center">
+          <div className="flex items-center cursor-pointer group" onClick={() => irA('inicio')}>
+            <ChefHat className="h-8 w-8 text-white mr-3" />
+            <span className="font-black text-2xl tracking-tighter uppercase italic">Mi Lupita</span>
+          </div>
+          <div className="hidden md:flex items-center space-x-8 font-bold text-sm uppercase">
+            {['inicio', 'galeria', 'ubicacion'].map(v => (
+               <button key={v} onClick={() => irA(v)} className={vistaActual === v ? 'text-orange-200' : ''}>{v}</button>
+            ))}
+            <button onClick={() => irA('admin')} className="bg-orange-700 px-4 py-2 rounded-full border border-orange-500 hover:bg-white hover:text-orange-600 transition-all flex items-center">
+              <Lock className="w-3 h-3 mr-2"/> Dueño
+            </button>
+            <button onClick={() => setMostrarCarrito(true)} className="relative p-2">
+              <ShoppingCart className="w-6 h-6" />
+              {cantidadTotal > 0 && <span className="absolute -top-1 -right-1 bg-green-500 text-[10px] rounded-full w-5 h-5 flex items-center justify-center font-black animate-bounce">{cantidadTotal}</span>}
+            </button>
+          </div>
+          <div className="md:hidden flex items-center space-x-4">
+            <button onClick={() => setMostrarCarrito(true)} className="relative"><ShoppingCart className="w-6 h-6" /></button>
+            <button onClick={() => setMenuAbierto(!menuAbierto)}><Menu /></button>
+          </div>
+        </div>
+      </nav>
+
+      {/* MAIN CONTENT */}
+      <main className="bg-mesh">
+        {vistaActual === 'inicio' && <VistaInicio platillos={platillos} abrirPersonalizacion={abrirPersonalizacion} irA={irA} />}
+        {vistaActual === 'galeria' && <VistaGaleria platillos={platillos} abrirPersonalizacion={abrirPersonalizacion} />}
+        {vistaActual === 'ubicacion' && <VistaUbicacion />}
+        {vistaActual === 'admin' && <VistaAdmin platillos={platillos} setPlatillos={setPlatillos} mostrarNotificacion={mostrarNotificacion} />}
+      </main>
+
+      {/* MODALS */}
+      {mensajeNotificacion && <div className="fixed top-28 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-10 py-5 rounded-full z-50 shadow-2xl border-2 border-orange-500 animate-fade-up font-bold uppercase text-xs tracking-widest">{mensajeNotificacion}</div>}
+
+      {personalizando && (
+        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 backdrop-blur-xl animate-fade-up">
+          <div className="bg-white w-full max-w-xl rounded-[3.5rem] overflow-hidden shadow-2xl border-8 border-orange-50">
+            <div className="p-10 space-y-8">
+              <div className="flex justify-between items-center">
+                <h3 className="text-3xl font-black uppercase italic tracking-tighter">{personalizando.nombre}</h3>
+                <button onClick={() => setPersonalizando(null)} className="p-2 bg-gray-100 rounded-full hover:bg-red-500 hover:text-white transition-colors"><X/></button>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                {CONDIMENTOS_CONFIG.map(c => (
+                  <button key={c.id} onClick={() => setCondimentosTemp({...condimentosTemp, [c.id]: !condimentosTemp[c.id]})} className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all ${condimentosTemp[c.id] ? 'border-orange-500 bg-orange-50' : 'border-gray-50 bg-gray-50'}`}>
+                    <span className="text-[10px] font-bold uppercase tracking-widest">{c.nombre}</span>
+                    {condimentosTemp[c.id] ? <Check className="w-4 h-4 text-orange-600"/> : <Plus className="w-4 h-4 text-gray-300"/>}
+                  </button>
+                ))}
+              </div>
+              <div className="pt-8 border-t-4 border-gray-50 flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] font-black text-gray-400 uppercase">Costo Final</p>
+                  <p className="text-4xl font-black text-orange-600">${personalizando.precio + CONDIMENTOS_CONFIG.reduce((sum, c) => condimentosTemp[c.id] ? sum + c.precio : sum, 0)}</p>
+                </div>
+                <button onClick={confirmarPersonalizacion} className="bg-orange-600 text-white px-10 py-5 rounded-3xl font-black uppercase tracking-widest shadow-xl hover:bg-orange-700">Agregar Pedido</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {mostrarCarrito && (
+        <div className="fixed inset-0 bg-black/90 z-50 flex justify-end backdrop-blur-md animate-fade-up">
+          <div className="bg-white w-full max-w-md h-full flex flex-col shadow-2xl border-l-[15px] border-orange-600">
+            <div className="p-10 flex justify-between items-center border-b-4 border-gray-50">
+              <h2 className="text-3xl font-black uppercase tracking-tighter italic">Tu Pedido</h2>
+              <button onClick={() => setMostrarCarrito(false)}><X className="w-8 h-8 text-gray-300 hover:text-red-500"/></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-10 space-y-6">
+              {carrito.length === 0 ? <p className="text-center py-20 font-black uppercase opacity-20 text-2xl">Vacío</p> : 
+                carrito.map(item => (
+                  <div key={item.idUnico} className="bg-white p-6 rounded-[2rem] border-4 border-orange-50 shadow-md">
+                    <div className="flex justify-between mb-4">
+                      <h4 className="font-black text-lg uppercase italic leading-none">{item.nombre}</h4>
+                      <p className="font-black text-orange-600">${item.precioFinal}</p>
+                    </div>
+                    <div className="flex items-center space-x-6 bg-gray-50 px-4 py-2 rounded-xl w-fit">
+                      <button onClick={() => actualizarCantidad(item.idUnico, -1)}><Minus/></button>
+                      <span className="font-black">{item.cantidad}</span>
+                      <button onClick={() => actualizarCantidad(item.idUnico, 1)}><Plus/></button>
+                    </div>
+                  </div>
+                ))
+              }
+            </div>
+            {carrito.length > 0 && (
+              <div className="p-10 bg-white border-t-8 border-gray-50">
+                <div className="flex justify-between text-4xl font-black mb-8 italic">
+                  <span>Total:</span>
+                  <span className="text-orange-600">${totalCarrito}</span>
+                </div>
+                <button onClick={pedirCarritoPorWhatsApp} className="w-full bg-green-500 text-white py-6 rounded-3xl font-black text-lg shadow-xl flex items-center justify-center uppercase tracking-widest">
+                  <MessageCircle className="mr-3 w-8 h-8"/> WhatsApp
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* FOOTER */}
+      <footer className="bg-gray-900 text-white py-16 text-center border-t-8 border-orange-600">
+        <ChefHat className="w-12 h-12 text-orange-500 mx-auto mb-4" />
+        <h3 className="text-2xl font-black italic">MI LUPITA</h3>
+        <p className="text-gray-500 mt-2">Ingeniero Márquez & Proyectos Digitales</p>
+      </footer>
+    </div>
+  );
+}
+
+// --- SUB-COMPONENTES ---
+
+function VistaInicio({ platillos, abrirPersonalizacion, irA }) {
+  const especialidades = platillos.filter(p => p.esEspecialidad);
+  return (
+    <div className="animate-fade-up">
+      <section className="min-h-[80vh] flex flex-col md:flex-row items-center justify-between px-8 md:px-24 py-16 gap-12 overflow-hidden">
+        <div className="md:w-1/2 space-y-8 z-10">
+          <div className="inline-flex items-center px-4 py-2 bg-orange-100 rounded-full text-orange-600 font-black text-[10px] uppercase tracking-widest animate-fade-up stagger-1">
+            <Sparkles className="w-3 h-3 mr-2" /> Menú Tradicional 3D
+          </div>
+          <h1 className="text-6xl md:text-8xl font-black leading-[0.9] tracking-tighter animate-fade-up stagger-2">
+            EL SABOR <br/> <span className="text-orange-600 italic text-5xl md:text-7xl underline decoration-8 underline-offset-8">MÁS REAL.</span>
+          </h1>
+          <p className="text-lg text-gray-500 font-medium max-w-md animate-fade-up stagger-3">
+            Explora nuestras especialidades y personaliza tu pedido al instante.
+          </p>
+          <div className="flex gap-4 animate-fade-up stagger-3">
+            <button onClick={() => irA('galeria')} className="px-10 py-5 bg-orange-600 text-white rounded-2xl font-black shadow-xl hover:bg-orange-700 transition-all uppercase tracking-widest text-xs">Ver Menú</button>
+            <button onClick={() => irA('ubicacion')} className="px-10 py-5 bg-white border-2 border-orange-100 text-orange-600 rounded-2xl font-black hover:bg-orange-50 transition-all uppercase tracking-widest text-xs">Visítanos</button>
+          </div>
+        </div>
+        <div className="md:w-1/2 flex items-center justify-center relative">
+          <RotatingDish3D />
+        </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-6 py-20">
+        <h2 className="text-4xl font-black text-gray-800 mb-12 uppercase italic">Especiales Semanales</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {especialidades.map((p, idx) => (
+            <TarjetaPlatillo key={p.id} platillo={p} abrirPersonalizacion={abrirPersonalizacion} destacado={true} />
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function VistaGaleria({ platillos, abrirPersonalizacion }) {
+  return (
+    <section className="max-w-7xl mx-auto px-6 py-20">
+      <h2 className="text-5xl font-black text-gray-800 mb-16 uppercase text-center italic">Menú Principal</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
+        {platillos.map(p => (
+          <TarjetaPlatillo key={p.id} platillo={p} abrirPersonalizacion={abrirPersonalizacion} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TarjetaPlatillo({ platillo, abrirPersonalizacion, destacado = false }) {
+  return (
+    <article className={`card-hover bg-white rounded-[2.5rem] overflow-hidden shadow-lg border-4 ${destacado ? 'border-orange-500' : 'border-white'} flex flex-col group`}>
+      <div className="relative h-56">
+        <img src={platillo.imagen} className="h-full w-full object-cover" alt={platillo.nombre} />
+        <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-md px-4 py-1 rounded-full font-black text-orange-600 shadow-xl text-lg tracking-tighter">
+          ${platillo.precio}
+        </div>
+      </div>
+      <div className="p-8 flex flex-col flex-1">
+        <h3 className="font-black text-xl text-gray-800 mb-2 uppercase italic leading-none">{platillo.nombre}</h3>
+        <p className="text-gray-400 text-[10px] mb-6 flex-1 italic">{platillo.descripcion}</p>
+        <button onClick={() => abrirPersonalizacion(platillo)} className="w-full bg-orange-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-orange-700 transition-all shadow-lg active:scale-95">Personalizar</button>
+      </div>
+    </article>
+  );
+}
+
+function VistaUbicacion() {
+  return (
+    <section className="max-w-4xl mx-auto px-6 py-24 text-center animate-fade-up">
+      <div className="bg-white p-12 rounded-[4rem] shadow-2xl border-[15px] border-orange-50 relative overflow-hidden">
+        <MapPin className="w-16 h-16 text-orange-600 animate-bounce mx-auto mb-6" />
+        <h3 className="text-3xl font-black text-gray-800 uppercase italic mb-4">MI LUPITA</h3>
+        <p className="text-gray-500 font-bold mb-8">Av. Juárez #45, Col. Centro Histórico.</p>
+        <div className="bg-orange-600 text-white py-3 px-10 rounded-full font-black text-xs uppercase tracking-widest inline-block">Abierto 24/7</div>
+      </div>
+    </section>
+  );
+}
+
+function VistaAdmin({ platillos, setPlatillos, mostrarNotificacion }) {
+  const [autenticado, setAutenticado] = useState(false);
+  const [pin, setPin] = useState('');
+  const [editando, setEditando] = useState(null);
+  const [form, setForm] = useState({ nombre: '', precio: 0, descripcion: '', imagen: '', esEspecialidad: false });
+
+  const login = (e) => {
+    e.preventDefault();
+    if (pin === "1234") setAutenticado(true);
+    else mostrarNotificacion("Acceso Denegado");
+  };
+
+  const guardar = () => {
+    if (!form.nombre) return;
+    const nuevos = editando === 'nuevo' ? [...platillos, { ...form, id: Date.now() }] : platillos.map(p => p.id === editando ? { ...form, id: editando } : p);
+    setPlatillos(nuevos);
+    setEditando(null);
+    mostrarNotificacion("Cambios Guardados");
+  };
+
+  if (!autenticado) return (
+    <div className="max-w-md mx-auto mt-32 p-16 bg-white rounded-[4rem] shadow-2xl text-center border-t-[20px] border-orange-600">
+      <h2 className="text-3xl font-black mb-10 uppercase italic">Admin Login</h2>
+      <form onSubmit={login}>
+        <input type="password" value={pin} onChange={e => setPin(e.target.value)} placeholder="PIN" className="w-full p-6 border-4 border-orange-50 rounded-3xl mb-8 text-center text-3xl font-black tracking-widest outline-none" />
+        <button className="w-full bg-orange-600 text-white py-6 rounded-3xl font-black uppercase tracking-widest shadow-xl">Entrar</button>
+      </form>
+    </div>
+  );
+
+  return (
+    <div className="max-w-6xl mx-auto px-6 py-20">
+      <div className="flex justify-between items-center mb-12">
+        <h2 className="text-5xl font-black text-orange-800 uppercase italic">Control de Menú</h2>
+        <button onClick={() => { setEditando('nuevo'); setForm({ nombre: '', precio: 0, descripcion: '', imagen: '', esEspecialidad: false }); }} className="bg-green-600 text-white px-8 py-4 rounded-3xl font-black flex items-center shadow-lg"><Plus className="mr-2"/> Nuevo</button>
+      </div>
+
+      {editando && (
+        <div className="bg-white p-12 rounded-[4rem] shadow-2xl mb-20 border-t-[15px] border-orange-600 space-y-6">
+          <input type="text" value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})} placeholder="Nombre" className="w-full p-6 border-2 border-gray-50 rounded-2xl text-xl font-black uppercase" />
+          <input type="number" value={form.precio} onChange={e => setForm({...form, precio: parseFloat(e.target.value)})} placeholder="Precio" className="w-full p-6 border-2 border-gray-50 rounded-2xl text-3xl font-black text-orange-600" />
+          <textarea value={form.descripcion} onChange={e => setForm({...form, descripcion: e.target.value})} placeholder="Descripción" className="w-full p-6 border-2 border-gray-50 rounded-2xl font-bold italic" />
+          <label className="flex items-center space-x-4 bg-orange-50 p-6 rounded-3xl cursor-pointer">
+            <input type="checkbox" checked={form.esEspecialidad} onChange={e => setForm({...form, esEspecialidad: e.target.checked})} className="w-10 h-10 rounded-xl text-orange-600" />
+            <span className="font-black text-xl text-orange-900 italic uppercase">Marcar como Especialidad Estrella ⭐</span>
+          </label>
+          <div className="flex space-x-4 pt-6">
+            <button onClick={() => setEditando(null)} className="flex-1 bg-gray-100 py-6 rounded-3xl font-black uppercase tracking-widest">Cancelar</button>
+            <button onClick={guardar} className="flex-1 bg-orange-600 text-white py-6 rounded-3xl font-black uppercase tracking-widest shadow-xl">Guardar</button>
+          </div>
+        </div>
+      )}
+
+      <div className="bg-white rounded-[4rem] shadow-2xl overflow-hidden border-[15px] border-white">
+        <table className="w-full text-left">
+          <thead className="bg-gray-900 text-white uppercase text-[10px] tracking-widest font-black">
+            <tr><th className="p-8">Platillo</th><th className="p-8">Precio</th><th className="p-8 text-center">Tipo</th><th className="p-8 text-right">Acciones</th></tr>
+          </thead>
+          <tbody className="divide-y-[10px] divide-gray-50">
+            {platillos.map(p => (
+              <tr key={p.id} className="hover:bg-orange-50 transition-colors">
+                <td className="p-8 font-black text-2xl uppercase italic">{p.nombre}</td>
+                <td className="p-8 font-black text-orange-600 text-3xl">${p.precio}</td>
+                <td className="p-8 text-center">{p.esEspecialidad ? "⭐" : "-"}</td>
+                <td className="p-8 text-right flex justify-end space-x-4">
+                  <button onClick={() => { setEditando(p.id); setForm(p); }} className="p-4 bg-blue-50 text-blue-500 rounded-2xl hover:bg-blue-600 hover:text-white transition-all"><Edit2/></button>
+                  <button onClick={() => setPlatillos(platillos.filter(x => x.id !== p.id))} className="p-4 bg-red-50 text-red-500 rounded-2xl hover:bg-red-600 hover:text-white transition-all"><Trash2/></button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
